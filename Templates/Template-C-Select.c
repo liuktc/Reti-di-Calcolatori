@@ -16,6 +16,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #define max(a, b)        ((a) > (b) ? (a) : (b))
+#define DIM_BUFF 100
 
 void gestore(int signo) {
     int stato;
@@ -27,6 +28,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in cliaddr, servaddr;
     struct hostent    *hostTcp, *hostUdp;
     int nread, port, listen_sd, conn_sd, udp_sd, maxfdp1, len;
+    char buff[DIM_BUFF];
     const int on = 1;
     fd_set rset;
 
@@ -156,99 +158,80 @@ int main(int argc, char **argv) {
                     exit(6);
                 }
             }
-
-            // Creazione figlio
-            if (fork() == 0) {
-                // Chiudo listen_sd perchè non serve al figlio
+            // Gestisco richiesta
+            // CASO 1) Se devo avere la stessa connessione per più richieste devo mettere un while
+            if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
                 close(listen_sd);
-                hostTcp = gethostbyaddr((char *)&cliaddr.sin_addr, sizeof(cliaddr.sin_addr), AF_INET);
-                if (hostTcp == NULL) {
-                    printf("client host information not found\n");
-                    close(conn_sd);
-                    exit(6);
-                } else {
-                    printf("Server (figlio): host client e' %s \n", hostTcp->h_name);
-                }
+                printf("Dentro il figlio, pid=%i\n", getpid());
 
-                // Gestisco richiesta
-                // Se devo avere la stessa connessione per più richieste devo mettere un while
-                if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
-                    close(listenfd);
-                    printf("Dentro il figlio, pid=%i\n", getpid());
-
-                    for (;;) {
-                        if ((read(connfd, &nome_file, sizeof(nome_file))) <= 0) {
-                            perror("read");
-                            break;
-                        }
-                        printf("Richiesto file %s\n", nome_file);
-
-                        fd_file = open(nome_file, O_RDONLY);
-                        if (fd_file < 0) {
-                            printf("File inesistente\n");
-                            write(connfd, "N", 1);
-                        } else {
-                            write(connfd, "S", 1);
-
-                            /* lettura dal file (a blocchi) e scrittura sulla socket */
-                            printf("Leggo e invio il file richiesto\n");
-                            while ((nread = read(fd_file, buff, sizeof(buff))) > 0) {
-                                if ((nwrite = write(connfd, buff, nread)) < 0) {
-                                    perror("write");
-                                    break;
-                                }
-                            }
-                            printf("Terminato invio file\n");
-
-                            /* invio al client segnale di terminazione: zero binario */
-                            write(connfd, &zero, 1);
-                            close(fd_file);
-                        } // else
-                    }     // for
-                    printf("Figlio %i: chiudo connessione e termino\n", getpid());
-                    close(connfd);
-                    exit(0);
-                }
-                // altrimento se ho una connessione per ogni richiesta posso ometterlo
-                if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
-                    close(listenfd);
-                    printf("Dentro il figlio, pid=%i\n", getpid());
-                    /* non c'e' piu' il ciclo perche' viene creato un nuovo figlio */
-                    /* per ogni richiesta di file */
-                    if (read(connfd, &nome_file, sizeof(nome_file)) <= 0) {
+                for (;;) {
+                    if ((read(conn_sd, &nome_file, sizeof(nome_file))) <= 0) {
                         perror("read");
                         break;
                     }
-
                     printf("Richiesto file %s\n", nome_file);
+
                     fd_file = open(nome_file, O_RDONLY);
                     if (fd_file < 0) {
                         printf("File inesistente\n");
-                        write(connfd, "N", 1);
+                        write(conn_sd, "N", 1);
                     } else {
-                        write(connfd, "S", 1);
-                        /* lettura e invio del file (a blocchi)*/
+                        write(conn_sd, "S", 1);
+
+                        /* lettura dal file (a blocchi) e scrittura sulla socket */
                         printf("Leggo e invio il file richiesto\n");
                         while ((nread = read(fd_file, buff, sizeof(buff))) > 0) {
-                            if ((nwrite = write(connfd, buff, nread)) < 0) {
+                            if ((nwrite = write(conn_sd, buff, nread)) < 0) {
                                 perror("write");
                                 break;
                             }
                         }
                         printf("Terminato invio file\n");
-                        /* non e' piu' necessario inviare al client un segnale di terminazione */
-                        close(fd_file);
-                    }
 
-                    /*la connessione assegnata al figlio viene chiusa*/
-                    printf("Figlio %i: termino\n", getpid());
-                    shutdown(connfd, 0);
-                    shutdown(connfd, 1);
-                    close(connfd);
-                    exit(0);
+                        /* invio al client segnale di terminazione: zero binario */
+                        write(conn_sd, &zero, 1);
+                        close(fd_file);
+                    } // else
+                }     // for
+                printf("Figlio %i: chiudo connessione e termino\n", getpid());
+                shutdown(conn_sd,SHUT_RDWR);
+                close(conn_sd);
+                exit(0);
+            }
+            // CASO 2) altrimento se ho una connessione per ogni richiesta posso ometterlo
+            if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
+                close(listen_sd);
+                printf("Dentro il figlio, pid=%i\n", getpid());
+                /* non c'e' piu' il ciclo perche' viene creato un nuovo figlio */
+                /* per ogni richiesta di file */
+                if (read(conn_sd, &nome_file, sizeof(nome_file)) <= 0) {
+                    perror("read");
+                    break;
                 }
-                // Libero risorse
-                printf("Figlio TCP terminato, libero risorse e chiudo. \n");
+
+                printf("Richiesto file %s\n", nome_file);
+                fd_file = open(nome_file, O_RDONLY);
+                if (fd_file < 0) {
+                    printf("File inesistente\n");
+                    write(conn_sd, "N", 1);
+                } else {
+                    write(conn_sd, "S", 1);
+                    /* lettura e invio del file (a blocchi)*/
+                    printf("Leggo e invio il file richiesto\n");
+                    while ((nread = read(fd_file, buff, sizeof(buff))) > 0) {
+                        if ((nwrite = write(conn_sd, buff, nread)) < 0) {
+                            perror("write");
+                            break;
+                        }
+                    }
+                    printf("Terminato invio file\n");
+                    /* non e' piu' necessario inviare al client un segnale di terminazione */
+                    close(fd_file);
+                }
+
+                /*la connessione assegnata al figlio viene chiusa*/
+                printf("Figlio %i: termino\n", getpid());
+                shutdown(conn_sd,SHUT_RDWR);
                 close(conn_sd);
                 exit(0);
             }
