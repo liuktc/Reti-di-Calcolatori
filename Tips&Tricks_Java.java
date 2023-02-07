@@ -127,3 +127,18 @@ r.close();
             ServerCongressoImpl serverRMI = new ServerCongressoImpl();
             Naming.rebind(completeName, serverRMI);
             System.out.println("Server RMI: Servizio \"" + serviceName + "\" registrato");
+
+/*
+ * --------------------COSE VARIE---------------------------
+ */
+    /* Lettura direttorio */
+    
+    // Dopo aver scritto sul file "temp" vogliamo eliminare il file originale e sostituirlo con "temp"
+    File fileorig = new File(nomeFile);
+    fileorig.delete();
+    
+    File file = new File(nomeFile);
+    File tempFile = new File("temp");       
+    
+    tempFile.renameTo(file);
+    tempFile.delete();

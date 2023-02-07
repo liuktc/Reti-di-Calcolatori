@@ -482,5 +482,47 @@ gets(buf); // consumare il fine linea
             }
         }
     }
-    
+
+    /* Leggere i file all'interno di un direttorio */
+    DIR *dir1, *dir2, *dir3;
+    struct dirent *dd1, *dd2;
+    char dir[DIR_LEN], newDir[DIR_LEN];
+
+    if ((dir1 = opendir(dir)) != NULL) {
+        while ((dd1 = readdir(dir1)) != NULL) {
+            // Ignoro le cartelle speciali . e ..
+            if (strcmp(dd1->d_name, ".") != 0 && strcmp(dd1->d_name, "..") != 0) {
+                snprintf(newDir,sizeof(newDir),"%s/%s",dir,dd1->d_name);
+
+                if((dir2 = opendir(newDir)) != NULL){
+                    // dd1 è una cartella
+                    while((dd2 = readdir(dir2)) != NULL){
+                        // Ignoro le cartelle speciali . e ..
+                        if (strcmp(dd2->d_name, ".") != 0 && strcmp(dd2->d_name, "..") != 0) {
+                            snprintf(newDir,sizeof(newDir),"%s/%s/%s",dir,dd1->d_name,dd2->d_name);
+                            if((dir3 = opendir(newDir)) != NULL){
+                                // dd2 è una cartella
+                            }else{
+                                // dd2 è un file
+                            }
+                        }
+                    }
+                }else{
+                    // dd1 è un file
+                }
+            }
+        }
+    }
+
+    /* Controllare se un file è un file di testo */
+    int len = strlen(dd1->d_name);
+    int isTextFile;
+    if(len < 4){
+        isTextFile = 0;
+    }else{
+        isTextFile = (dd1->d_name[len-4] == '.' &&
+                      dd1->d_name[len-3] == 't' &&
+                      dd1->d_name[len-2] == 'x' &&
+                      dd1->d_name[len-1] == 't');
+    }
     

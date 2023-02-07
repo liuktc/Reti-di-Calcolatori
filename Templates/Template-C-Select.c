@@ -171,8 +171,81 @@ int main(int argc, char **argv) {
 
                 // Gestisco richiesta
                 // Se devo avere la stessa connessione per più richieste devo mettere un while
-                // altrimento se ho una connessione per ogni richiesta posso ometterlo
+                if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
+                    close(listenfd);
+                    printf("Dentro il figlio, pid=%i\n", getpid());
 
+                    for (;;) {
+                        if ((read(connfd, &nome_file, sizeof(nome_file))) <= 0) {
+                            perror("read");
+                            break;
+                        }
+                        printf("Richiesto file %s\n", nome_file);
+
+                        fd_file = open(nome_file, O_RDONLY);
+                        if (fd_file < 0) {
+                            printf("File inesistente\n");
+                            write(connfd, "N", 1);
+                        } else {
+                            write(connfd, "S", 1);
+
+                            /* lettura dal file (a blocchi) e scrittura sulla socket */
+                            printf("Leggo e invio il file richiesto\n");
+                            while ((nread = read(fd_file, buff, sizeof(buff))) > 0) {
+                                if ((nwrite = write(connfd, buff, nread)) < 0) {
+                                    perror("write");
+                                    break;
+                                }
+                            }
+                            printf("Terminato invio file\n");
+
+                            /* invio al client segnale di terminazione: zero binario */
+                            write(connfd, &zero, 1);
+                            close(fd_file);
+                        } // else
+                    }     // for
+                    printf("Figlio %i: chiudo connessione e termino\n", getpid());
+                    close(connfd);
+                    exit(0);
+                }
+                // altrimento se ho una connessione per ogni richiesta posso ometterlo
+                if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
+                    close(listenfd);
+                    printf("Dentro il figlio, pid=%i\n", getpid());
+                    /* non c'e' piu' il ciclo perche' viene creato un nuovo figlio */
+                    /* per ogni richiesta di file */
+                    if (read(connfd, &nome_file, sizeof(nome_file)) <= 0) {
+                        perror("read");
+                        break;
+                    }
+
+                    printf("Richiesto file %s\n", nome_file);
+                    fd_file = open(nome_file, O_RDONLY);
+                    if (fd_file < 0) {
+                        printf("File inesistente\n");
+                        write(connfd, "N", 1);
+                    } else {
+                        write(connfd, "S", 1);
+                        /* lettura e invio del file (a blocchi)*/
+                        printf("Leggo e invio il file richiesto\n");
+                        while ((nread = read(fd_file, buff, sizeof(buff))) > 0) {
+                            if ((nwrite = write(connfd, buff, nread)) < 0) {
+                                perror("write");
+                                break;
+                            }
+                        }
+                        printf("Terminato invio file\n");
+                        /* non e' piu' necessario inviare al client un segnale di terminazione */
+                        close(fd_file);
+                    }
+
+                    /*la connessione assegnata al figlio viene chiusa*/
+                    printf("Figlio %i: termino\n", getpid());
+                    shutdown(connfd, 0);
+                    shutdown(connfd, 1);
+                    close(connfd);
+                    exit(0);
+                }
                 // Libero risorse
                 printf("Figlio TCP terminato, libero risorse e chiudo. \n");
                 close(conn_sd);
