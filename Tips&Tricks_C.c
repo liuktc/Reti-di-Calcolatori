@@ -482,3 +482,5 @@ gets(buf); // consumare il fine linea
             }
         }
     }
+    
+    
