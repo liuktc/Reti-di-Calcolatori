@@ -1,4 +1,4 @@
-/* Client per richiedere l'invio di un file (get, versione 1) */
+/* Nome Cognome Matricola */
 
 #include <fcntl.h>
 #include <netdb.h>
