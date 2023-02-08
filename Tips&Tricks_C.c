@@ -526,3 +526,11 @@ gets(buf); // consumare il fine linea
                       dd1->d_name[len-1] == 't');
     }
     
+    /* Esempio split di una stringa con strtok */
+    char string[80] = "123|cartella1/cartella2/ciao.txt";
+    char *strToken = strtok(string, "|"); // prima gli passiamo la stringa
+    printf("PRimo strtok %s\n", strToken); // 123
+    strToken = strtok(NULL,"/"); // poi passiamo NULL
+    printf("Secondo token %s\n",strToken); // cartella1
+    strToken = strtok(NULL,"/");
+    printf("Terzo token %s\n",strToken); // cartella2
