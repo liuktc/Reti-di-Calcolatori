@@ -235,7 +235,7 @@ int main(int argc, char **argv)
                 close(sock);
                 while(1){
                     //Attendo ID seriale, poi numero immagini, poi per ogni  size immagine, nome immagine, zero binario e immagine
-
+                    
                     char seriale[7];
                     int imageNum; 
                     int imageSize; 
@@ -269,14 +269,23 @@ int main(int argc, char **argv)
                         imageSize = ntohl(imageSize);
                         printf("Attendo immagine di %d bytes\n", imageSize);
                         strcpy(imageName, "");
-                        do{
+                        /*do{
                             //TODO Sarebbe bene controllare errori in read
                             read(open_conn_sock, &readChar, 1);
                             if(readChar != 0){
                                 imageName[strlen(imageName)] = readChar;
                                 imageName[strlen(imageName)+1] = '\0';
                             }
-                        }while(readChar != 0);
+                        }while(readChar != 0);*/
+                        int cont = 0;
+                        read(open_conn_sock, &readChar, 1);
+                        while(readChar != 0){
+                            imageName[cont] = readChar;
+                            cont++;
+                            read(open_conn_sock, &readChar, 1);
+                        }
+                        imageName[cont] = "\0";
+
                         strcpy(imagePath, "");
                         strcat(imagePath, seriale);
                         strcat(imagePath, "_img/");

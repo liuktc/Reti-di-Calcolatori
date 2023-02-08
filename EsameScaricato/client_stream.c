@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 
         imageNum = 0;
         while((dd = readdir(dir)) != NULL){
-            if(strcmp(dd->d_name, ".") != 0 && strcmp(dd->d_name, "..") != 0 && dd->d_type != DT_DIR){
+            if(strcmp(dd->d_name, ".") != 0 && strcmp(dd->d_name, "..") != 0 && opendir(dd->d_name) == NULL){//dd->d_type != DT_DIR){
                 imageNum++;
             }
         }

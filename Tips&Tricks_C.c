@@ -514,6 +514,9 @@ gets(buf); // consumare il fine linea
         }
     }
 
+    // Se voglio rileggere la cartella devo prima fare 
+    closedir(dir1);
+
     /* Controllare se un file è un file di testo */
     int len = strlen(dd1->d_name);
     int isTextFile;
@@ -534,3 +537,22 @@ gets(buf); // consumare il fine linea
     printf("Secondo token %s\n",strToken); // cartella1
     strToken = strtok(NULL,"/");
     printf("Terzo token %s\n",strToken); // cartella2
+
+
+    /* dimensione di un file */
+    int fd = open(nomefile,O_RDONLY);
+    int dim = 0;
+    int nread = 0;
+    while((nread = read(fd,buff,sizeof(buff))) > 0){
+        dim += nread;
+    }
+
+    /* Lettura di una stringa fino allo zero binario */
+    int cont = 0;
+    read(open_conn_sock, &readChar, 1);
+    while(readChar != 0){
+        imageName[cont] = readChar;
+        cont++;
+        read(open_conn_sock, &readChar, 1);
+    }
+    imageName[cont] = "\0";
