@@ -20,7 +20,10 @@ class ServerStreamThread extends Thread {
         int cont = 0;
         int read_bytes = 0;
         DataOutputStream dest_stream = null;
-        String ris;
+        String ris, folder_name;
+        File folder;
+        File[] foto;
+        DataInputStream bf;
 
         try {
             inSock = new DataInputStream(clientSocket.getInputStream());
@@ -42,7 +45,27 @@ class ServerStreamThread extends Thread {
 
                     }else if(servizio.equals("D")){
                         String targa=inSock.readUTF();
-                        File folder=new 
+                        if((folder_name=ServerStream.cerca_folder(targa))==null){
+                            outSock.close();
+                            inSock.close();
+                            clientSocket.close();
+                            System.exit(-1);
+                        }
+                        folder=new File(folder_name);
+                        if(folder.exists() && folder.isDirectory()){
+                            foto=folder.listFiles();
+                            outSock.writeInt(foto.length-2);
+                            for(int i=0; i<foto.length;i++){
+                                if(foto[i].isFile()){
+                                    outSock.writeUTF(foto[i].getName());
+                                    outSock.writeLong(foto[i].length());
+                                    bf=new DataInputStream(new FileInputStream(foto[i]));
+                                    while((read_bytes=bf.read(buffer))>0){
+                                        outSock.write(buffer, 0, read_bytes);
+                                    }
+                                }
+                            }
+                        }
 
                     }else{
                         System.out.println("Servizio non presente");
@@ -80,8 +103,41 @@ public class ServerStream {
     private static final int N=10;
     static Prenotazione[] prenotazioni=null;
 
-    public static synchronized String elimina_prenotazione(String targa){
 
+    public static synchronized String elimina_prenotazione(String targa){
+        File folder;
+        String folder_name;
+        File[] foto;
+        for(int i=0; i<N; i++){
+            if(prenotazioni[i].getTarga().equals(targa)){
+                prenotazioni[i].setPatente("0");
+                prenotazioni[i].setTarga("L");
+                prenotazioni[i].setTipo("L");
+                folder=new File(prenotazioni[i].getFolder());
+                if(folder.exists() && folder.isDirectory()){
+                    foto=folder.listFiles();
+                    for(int j=0; j<foto.length;j++){
+                        if(foto[j].isFile()){
+                            foto[j].delete();
+                        }
+                    }
+                    return "prenotazione eliminata";
+                }else{
+                    return "Cartella non trovata";
+                }
+
+            }
+        }
+        return "Non trovata prenotazione";
+    }
+
+    public static String cerca_folder(String targa){
+        for(int i=0; i<N; i++){
+            if(prenotazioni[i].getTarga().equals(targa)){
+                return prenotazioni[i].getFolder();
+            }
+        }
+        return null;
     }
 
     public static void main(String[] args) throws IOException {

@@ -31,8 +31,14 @@ public class Prenotazione {
     public void setPatente(String patente){
         this.patente = patente;
     }
-    public void setTipo(String tipo){
+    public boolean setTipo(String tipo){
+        if(!tipo.equals("auto") && 
+           !tipo.equals("camper") &&
+           !tipo.equals("L") ){
+                return false;
+           }
         this.tipo = tipo;
+        return true;
     }
     public void setFolder(String folder){
         this.folder = folder;
