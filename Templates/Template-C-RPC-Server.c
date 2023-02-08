@@ -17,7 +17,7 @@ void inizializza() {
     if (inizializzato == 1) {
         return;
     }
-    for(int i=0;i<NUM_STANZE;i++){
+    for(i=0;i<NUM_STANZE;i++){
         strcpy(stanze[i].nomeStanza,"L");
         strcpy(stanze[i].tipo,"L");
         for(int j=0;j<NUM_UTENTI;j++){
