@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
         printf("Richiesta del file %s inviata... \n", nome_file);
-        shutdown(sd, 1); // stop sending data
+        shutdown(sd, SHUT_WR); // stop sending data
 
         if (read(sd, &ok, 1) < 0) {
             perror("read");
@@ -106,11 +106,11 @@ int main(int argc, char *argv[]) {
             printf("File inesistente\n");
 
         printf("Chiudo connessione\n");
-        shutdown(sd, 0);
+        shutdown(sd, SHUT_RD);
         close(sd); // chiusura sempre DENTRO
         printf("Nome del file da richiedere: ");
 
-    } // while
+    }
     printf("\nClient: termino...\n");
     exit(0);
 }

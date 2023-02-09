@@ -114,6 +114,7 @@ int main(int argc, char **argv) {
 
     /* CICLO DI RICEZIONE RICHIESTE --------------------------------------------- */
     for (;;) {
+        /* Settaggio maschera */
         FD_SET(listen_sd, &rset);
         FD_SET(udp_sd, &rset);
 
@@ -126,11 +127,17 @@ int main(int argc, char **argv) {
             }
         }
 
+        /* Se nella maschera è settato udp_sd significa che ci
+         * sono dei messaggi sulla socket datagram da gestire.
+         */
         if (FD_ISSET(udp_sd, &rset)) {
             printf("Ricevuta richiesta dalla socket UDP\n");
 
             // Ricezione messaggio in arrivo
             len = sizeof(struct sockaddr_in);
+            /* Essendo dentro una select, la recvfrom non sarà blocante, nel senso
+             * che non dovrà aspettare l'arrivo di un messaggio
+             */
             /*if (recvfrom(udp_sd, nomeStanza, sizeof(nomeStanza), 0, (struct sockaddr_in *)&cliaddr, &len) < 0) {
                 perror("recvfrom ");
                 continue;
@@ -145,7 +152,10 @@ int main(int argc, char **argv) {
 
 
         }
-
+        
+        /* Se nella maschera è settato listen_sd significa che c'è
+         * una richiesta di connessione sulla socket stream.
+         */
         if (FD_ISSET(listen_sd, &rset)) {
             printf("Ricevuta richiesta dalla socket TCP\n");
 
@@ -159,7 +169,7 @@ int main(int argc, char **argv) {
                 }
             }
             // Gestisco richiesta
-            // CASO 1) Se devo avere la stessa connessione per più richieste devo mettere un while
+            // CASO 1) Stessa connessione per più richieste
             if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
                 close(listen_sd);
                 printf("Dentro il figlio, pid=%i\n", getpid());
@@ -198,7 +208,7 @@ int main(int argc, char **argv) {
                 close(conn_sd);
                 exit(0);
             }
-            // CASO 2) altrimento se ho una connessione per ogni richiesta posso ometterlo
+            // CASO 2) Una sola connessione per ogni richiesta
             if (fork() == 0) { /* processo figlio che serve la richiesta di operazione */
                 close(listen_sd);
                 printf("Dentro il figlio, pid=%i\n", getpid());

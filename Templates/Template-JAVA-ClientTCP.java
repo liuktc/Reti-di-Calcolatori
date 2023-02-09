@@ -17,11 +17,14 @@ public class Client {
         Socket ssocket;
         DataInputStream inSock;
         DataOutputStream outSock;
+
+        /* Controllo dei parametri di invocazione */
         try {
             if (args.length == 2) {
                 hostServerStream = InetAddress.getByName(args[0]);
                 portServerStream = Integer.parseInt(args[1]);
-                // controllo che la porta sia nel range consentito 1024-65535
+
+                /* Controllo che la porta sia nel range consentito 1024-65535 */
 				if (portServerStream < 1024 || portServerStream > 65535) {
 					System.out.println("Usage: java Client hostServerStream portServerStream");
 					System.exit(1);
@@ -31,8 +34,7 @@ public class Client {
                         .println("Usage: java Client hostServerStream portServerStream");
                 System.exit(1);
             }
-        } // try
-          // Per esercizio si possono dividere le diverse eccezioni
+        }
         catch (Exception e) {
             System.out.println("Problemi, i seguenti: ");
             e.printStackTrace();
@@ -40,20 +42,26 @@ public class Client {
                     .println("Usage: java Client hostServerStream portServerStream");
             System.exit(2);
         }
+
         System.out.println("Esecuzione del servizio, ctrl+c per terminare");
         System.out.print("Premi V per la visualizzazione delle stanze, S per la sospensione di una stanza (ctrl+z exit): ");
+        
+        /* Ciclo infinito di interazione con l'utente */
         while ((req = br.readLine()) != null) {
             if (!req.equals("V") && !req.equals("S")) {
                 System.out.println("Errore di sintassi");
                 System.out.print("Premi V per la visualizzazione delle stanze, S per la soppressione di una stanza (ctrl+c exit): ");
                 continue;
             }
-            // creazione socket
+            
+            /* Creazione socket e settaggio del timeout di 30s */
             try {
+                /* La connect è implicita nel costruttore di Socket */
                 ssocket = new Socket(hostServerStream, portServerStream);
-                // setto il timeout per non bloccare indefinitivamente il client
                 ssocket.setSoTimeout(30000);
                 System.out.println("Creata la socket: " + ssocket);
+
+                /* Estrazione degli stream di I/O della socket */
                 inSock = new DataInputStream(ssocket.getInputStream());
                 outSock = new DataOutputStream(ssocket.getOutputStream());
             } catch (IOException ioe) {
@@ -61,18 +69,17 @@ public class Client {
                 ioe.printStackTrace();
                 System.out.print("\n^D(Unix)/^Z(Win)+invio per uscire,"
                         + " solo invio per continuare: ");
-                // il client continua l'esecuzione riprendendo dall'inizio del ciclo
                 continue;
-            }        
+            }    
+
             /* Servizio di (V)isualizzazione */
             if (req.equals("V")) {
                 int numStanze;
                 String stanzaCorr;
-                // utilizzo socket
                 try {
-                    // invio il tipo del servizio
+                    /* Invio il tipo di servizio richiesto */
                     outSock.writeUTF(req);
-                    // chiudo l'output
+                    /* Chiudo l'output dato che non devo più inviare dati al server */ 
                     ssocket.shutdownOutput();
                     // leggo il numero di stanze da visualizzare
                     numStanze = inSock.readInt();
@@ -87,17 +94,14 @@ public class Client {
                     System.out.println("Problemi nella creazione degli stream su socket: ");
                     ioe.printStackTrace();
                     System.out.print("\n^D(Unix)/^Z(Win)+invio per uscire, solo invio per continuare: ");
-                    // il client continua l'esecuzione riprendendo dall'inizio del ciclo
                     continue;
                 } catch (Exception e) {
                     System.out.println("Problemi nella creazione della socket: ");
                     e.printStackTrace();
                     System.out.print("\n^D(Unix)/^Z(Win)+invio per uscire solo invio per continuare: ");
-                    // il client continua l'esecuzione riprendendo dall'inizio del ciclo
                     continue;
                 }
                 System.out.println("\n\n---FINE RICEZIONE STANZE---\n\n");
-                /* Servizio di (S)ospensione */
             } 
             /* Servizio di (S)ospensionne di una stanza */
             else {
@@ -119,13 +123,11 @@ public class Client {
                     System.out.println("Problemi nella creazione degli stream su socket: ");
                     ioe.printStackTrace();
                     System.out.print("\n^D(Unix)/^Z(Win)+invio per uscire, solo invio per continuare: ");
-                    // il client continua l'esecuzione riprendendo dall'inizio del ciclo
                     continue;
                 } catch (Exception e) {
                     System.out.println("Problemi nella creazione della socket: ");
                     e.printStackTrace();
                     System.out.print("\n^D(Unix)/^Z(Win)+invio per uscire, solo invio per continuare: ");
-                    // il client continua l'esecuzione riprendendo dall'inizio del ciclo
                     continue;
                 }
                 if (risposta == 0) {
@@ -133,8 +135,10 @@ public class Client {
                 } else {
                     System.out.println("Errori nella soppressione...");
                 }
-            } // else
+            }
             System.out.print("Premi V per la visualizzazione delle stanze, S per la soppressione di una stanza (ctrl+c exit): ");
-        } // while
-    }// main
-}// class Client
+        }
+
+        
+    }
+}

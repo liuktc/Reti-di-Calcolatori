@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
         len = sizeof(servaddr);
         if (sendto(sd, &req, sizeof(req), 0, (struct sockaddr *)&servaddr, len) < 0) {
             perror("sendto");
-            // se questo invio fallisce il client torna all'inzio del ciclo
+            /* Se questo invio fallisce il client torna all'inzio del ciclo */
             printf("Dammi il nome di file, EOF per terminare: ");
             continue;
         }
@@ -99,11 +99,12 @@ int main(int argc, char **argv) {
         /* ricezione del risultato */
         if (recvfrom(sd, &ris, sizeof(ris), 0, (struct sockaddr *)&servaddr, &len) < 0) {
             perror("recvfrom");
-            // se questo invio fallisce il client torna all'inzio del ciclo
+            /* Se questa riceziones fallisce il client torna all'inzio del ciclo */
             printf("Dammi il nome di file, EOF per terminare: ");
             continue;
         }
 
+        /* Print del risultato */
         if (ris < 0) {
             printf("Errore: file inesistentesul server o errore in apertura\n");
         } else {

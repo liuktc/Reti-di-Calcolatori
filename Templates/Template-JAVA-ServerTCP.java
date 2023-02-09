@@ -6,35 +6,30 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-// Thread lanciato per ogni richiesta accettata
+/* Thread lanciato per ogni richiesta accettata */ 
 class Server_thread extends Thread {
     private Socket clientSocket = null;
     private Stanza[] s;
 
-    // costruttore
+    /* Costruttore */
     public Server_thread(Socket clientSocket, Stanza[] s) {
         this.clientSocket = clientSocket;
         this.s = s;
     }
 
-    /**
-     * Main invocabile con 0 o 1 argomenti. Argomento possibile -> porta su cui il
-     * server ascolta.
-     */
     public void run() {
         DataInputStream inSock;
         DataOutputStream outSock;
         String servizio;
         String stanza;
         try {
-            // creazione stream di input/output da socket
+            /* Estrazione degli stream di I/O dalla socket */
             inSock = new DataInputStream(clientSocket.getInputStream());
             outSock = new DataOutputStream(clientSocket.getOutputStream());
-            // lettura tipo di servizio richiesto
+            /* Lettura tipo di servizio richiesto */
             servizio = inSock.readUTF();
             if (!servizio.equals("V") && !servizio.equals("S")) {
-                // se ricevo una richiesta che non riesco a gestire chiudo in
-                // modo anomalo
+                /* Se ricevo una richiesta che non riesco a gestire chiudo in modo anomalo */
                 clientSocket.close();
                 return;
             } else {
@@ -59,24 +54,22 @@ class Server_thread extends Thread {
                     // temrinate le scritture; chiuto anche in output
                     clientSocket.shutdownOutput();
                 }
-            } // else
-        } // try
+            }
+        }
         catch (IOException ioe) {
             System.out
                     .println("Problemi nella creazione degli stream di input/output " + "su socket: ");
             ioe.printStackTrace();
-            // il server continua l'esecuzione riprendendo dall'inizio del ciclo
-            return;
+            return; // Il singolo thread si termina
         } catch (Exception e) {
             System.out
                     .println("Problemi nella creazione degli stream di input/output "
                             + "su socket: ");
             e.printStackTrace();
-            // il server continua l'esecuzione riprendendo dall'inizio del ciclo
-            return;
+            return; // Il singolo thread si termina
         }
-    } // run
-} // Server_stream_thread
+    }
+}
 
 public class Server {
     private static final int N = 10;
@@ -97,11 +90,12 @@ public class Server {
         ServerSocket serverSocket = null;
         Socket clientSocket = null;
         int port = -1;
-        // Controllo argomenti
+
+        /* Controllo argomenti */
         try {
             if (args.length == 1) {
                 port = Integer.parseInt(args[0]);
-                // controllo che la porta sia nel range consentito 1024-65535
+                /* Controllo che la porta sia nel range consentito 1024-65535 */
 				if (port < 1024 || port > 65535) {
 					System.out.println("Usage: java Server port");
 					System.exit(1);
@@ -110,14 +104,15 @@ public class Server {
                 System.out.println("Usage: java Server port");
                 System.exit(1);
             }
-        } // try
+        }
         catch (Exception e) {
             System.out.println("Problemi, i seguenti: ");
             e.printStackTrace();
             System.out.println("Usage: java Server port");
             System.exit(2);
         }
-        // inizializzazione struttura dati
+
+        /* Inizializzazione struttura dati */
         s = new Stanza[N];
         for (int i = 0; i < N; i++) {
             s[i] = new Stanza();
@@ -133,6 +128,7 @@ public class Server {
         System.out.println("Stanze inizializzate");
 
 
+        /* Creazione serverSocket e settaggio reuse address */
         try {
             serverSocket = new ServerSocket(port);
             serverSocket.setReuseAddress(true);
@@ -149,12 +145,14 @@ public class Server {
             while (true) {
                 System.out.println("Server: in attesa di richieste...\n");
                 try {
-                    // bloccante finche' non avviene una connessione
+                    /* Bloccante finche' non avviene una connessione */
                     clientSocket = serverSocket.accept();
+                    /* Timeout non necessario ma lo mettiamo per sicurezza,
+                     * meglio che il server non si blocchi indefinitamente.
+                     */
                     clientSocket.setSoTimeout(60000);
-                    // qui non e' piu' cosa indispensabile, ma e' comunque meglio
-                    // evitare che un thread si blocchi indefinitamente
                     System.out.println("Server: connessione accettata: " + clientSocket);
+                    /* Creazione Thread separato per la gestione della nuova connessione */
                     new Server_thread(clientSocket, s).start();
                 } catch (Exception e) {
                     System.err
@@ -162,18 +160,17 @@ public class Server {
                                     + e.getMessage());
                     e.printStackTrace();
                     continue;
-                    // il server continua a fornire il servizio ricominciando dall'inizio
-                    // del ciclo
                 }
-            } // while
+            }
         }
-        // qui catturo le eccezioni non catturate all'interno del while
-        // in seguito alle quali il server termina l'esecuzione
+        /* Qui catturo le eccezioni non catturate all'interno del while
+         * in seguito alle quali il server termina l'esecuzione.
+         */
         catch (Exception e) {
             e.printStackTrace();
-            // chiusura di stream e socket
+            serverSocket.close();
             System.out.println("PutFileServerCon: termino...");
             System.exit(2);
         }
     }
-} // Server_stream
+}
