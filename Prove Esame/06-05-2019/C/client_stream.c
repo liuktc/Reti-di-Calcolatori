@@ -87,6 +87,8 @@ int main(int argc, char *argv[]) {
             printf("Nome della cartella da richiedere: ");
             continue;
         }
+        num_file = ntohl(num_file);
+        
         for(int i=0; i<num_file; i++){
             strcpy(nome_file,"");
             count=0;

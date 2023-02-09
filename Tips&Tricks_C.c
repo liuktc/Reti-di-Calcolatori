@@ -550,9 +550,130 @@ gets(buf); // consumare il fine linea
     /* Lettura di una stringa fino allo zero binario */
     int cont = 0;
     read(open_conn_sock, &readChar, 1);
-    while(readChar != 0){
+    while(readChar != '\0'){
         imageName[cont] = readChar;
         cont++;
         read(open_conn_sock, &readChar, 1);
     }
-    imageName[cont] = "\0";
+    imageName[cont] = '\0';
+    
+
+    /* -------------------------------------------------- 
+     * Invio di tutti i file all'interno di un direttorio
+     * -------------------------------------------------- 
+     */
+    /*----INVIO----*/
+        DIR *dir1;
+        struct dirent *dd1;
+        char dir[DIR_LEN], newDir[DIR_LEN];
+        int cont = 0;
+        if ((dir1 = opendir(nome_dir)) != NULL) {
+            while ((dd1 = readdir(dir1)) != NULL) {
+                // Ignoro le cartelle speciali . e ..
+                if (strcmp(dd1->d_name, ".") != 0 && strcmp(dd1->d_name, "..") != 0) {
+                    snprintf(newDir,sizeof(newDir),"%s/%s",nome_dir,dd1->d_name);
+
+                    if((opendir(newDir)) == NULL){
+                        // dd1 è un file
+                        cont++;
+                    }
+                }
+            }
+        }
+        cont = htonl(cont); // Convertire intero da host a network byte order
+        // Comunico il numero di file da inviare
+        if(write(conn_sd, &count, sizeof(int))<0){
+            perror("write");
+            break;
+        }
+
+        if ((dir1 = opendir(nome_dir)) != NULL) {
+            while ((dd1 = readdir(dir1)) != NULL) {
+                // Ignoro le cartelle speciali . e ..
+                if (strcmp(dd1->d_name, ".") != 0 && strcmp(dd1->d_name, "..") != 0) {
+                    snprintf(newDir,sizeof(newDir),"%s/%s",nome_dir,dd1->d_name);
+
+                    if((opendir(newDir)) == NULL){
+                        // dd1 è un file
+                        if(write(conn_sd, dd1->d_name, strlen(dd1->d_name)+1)<0){
+                            perror("write");
+                            break;
+                        }
+                        if((fd=open(newDir, O_RDONLY))<0){
+                            perror("open");
+                            break;
+                        }
+                        while ((nread = read(fd, buff, sizeof(buff))) > 0) {
+                            if (write(conn_sd, buff, nread) < 0) {
+                                perror("write");
+                                break;
+                            }
+                        }
+                        /* Scrittura zero binario per comunicare la fine del file */
+                        if(write(conn_sd,&zero, 1)<0){
+                            perror("write");
+                            break;
+                        }
+                        close(fd);
+                    }
+                }
+            }
+        }
+    /*----RICEZIONE----*/
+        while (gets(nome_dir)) {
+
+            if (write(sd, &nome_dir, (strlen(nome_dir) + 1)) < 0) {
+                perror("write");
+                close(sd);
+                printf("Nome del file da richiedere: ");
+                continue;
+            }
+            printf("Richiesta della directory %s inviata... \n", nome_dir);
+
+            /* Lettura del numero di file da ricevere*/
+            if(read(sd, &num_file, sizeof(int))<0){
+                perror("read");
+                close(sd);
+                printf("Nome della cartella da richiedere: ");
+                continue;
+            }
+            num_file = ntohl(num_file);
+            printf("Ci sono %d in arrivo", num_file);
+            
+            /* Ricezione di num_file files*/
+            for(int i=0; i<num_file; i++){
+                strcpy(nome_file,"");
+                count=0;
+                /* Lettura del nome del file in arrivo */
+                while(read(sd, &car, 1) > 0) {
+                    if(car!='\0'){
+                        nome_file[count]=car;
+                        count++;
+                    }else{
+                        nome_file[count]='\0';
+                        break;
+                    }
+                }
+                /* Creazione del file con il nome richiesto */
+                fd=open(nome_file, O_CREAT | O_WRONLY, 0777);
+                if(fd<0){
+                    perror("open");
+                    break;
+                }
+                /* Lettura a caratteri del file in arrivo.
+                 * 
+                 * Lettura fatta a caratteri perchè per segnalare la 
+                 * fine di un file inviamo il carattere terminatore
+                 * sulla socket.*/
+                while((nread=read(sd, &car, 1))>0){
+                    if(car!='\0'){
+                        write(fd, car, nread);
+                    }else{
+                        break;
+                    }
+                }
+                printf("ho scaricato il file con nome: "+ nome_file);
+                close(fd);
+            }
+            printf("Ho finito di scaricare tutti i file");
+        }
