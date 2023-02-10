@@ -132,6 +132,15 @@ r.close();
  * --------------------COSE VARIE---------------------------
  */
     /* Lettura direttorio */
+    File dir = new File(dirName);
+    if(dir.isDirectory()){
+        File[] files = dir.listFiles();
+        for(int i=0;i<files.length;i++){
+            if(files[i].isFile()){
+                // Faccio qualcosa con il file
+            }
+        }
+    }
     
     // Dopo aver scritto sul file "temp" vogliamo eliminare il file originale e sostituirlo con "temp"
     File fileorig = new File(nomeFile);
@@ -142,3 +151,12 @@ r.close();
     
     tempFile.renameTo(file);
     tempFile.delete();
+
+    /* Lettura file binario */
+    DataInputStream is = new DataInputStream(new FileInputStream(fileName));
+    /* Scrittura file binario */
+    DataOutputStream os = new DataOutputStream(new FileOutputStream(fileName));
+
+    /* Lettua/scrittura file di testo */
+    BufferedReader br = new BufferedReader(new FileReader(fileName));
+    BufferedWriter bw = new BufferedWriter(new FileWriter(filename));
