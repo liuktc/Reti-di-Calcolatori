@@ -1,0 +1,24 @@
+/*----COMPILAZIONE JAVA----*/
+javac *.java
+
+/*----ESECUZIONE JAVA----*/
+java Client host port  // ES: java Client localhost 1099
+java Server port       // ES: java Server 1099
+
+
+/*----COMPILAZIONE C----*/
+gcc client.c -o client.exe
+gcc server.c -o server.exe
+
+/*----ESECUZIONE C----*/
+./client.exe host port // ES: ./client.exe localhost 1099
+./server.exe port      // ES: ./server.exe 1099
+
+/*----COMPILAZIONE RPC----*/
+rpcgen server.h 
+gcc -o client client.c server_clnt.c client_xdr.c // Produce il comando client
+gcc -o server server.c server_svc.c server_xdr.c  // Produce il comando server
+
+/*----ESECUZIONE RPC----*/
+./server
+./client serverhost // ES: ./client localhost
